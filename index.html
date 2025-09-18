@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Akinator Clone</title>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+    #question { font-size: 20px; margin: 20px 0; }
+    button { margin: 5px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
+    #output { margin-top: 20px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <h1>?? Akinator Clone (Netlify)</h1>
+  <button onclick="startGame()">Start Game</button>
+  <div id="question"></div>
+  <div id="answers" style="display:none;">
+    <button onclick="answer(0)">Yes</button>
+    <button onclick="answer(1)">No</button>
+    <button onclick="answer(2)">Don't Know</button>
+    <button onclick="answer(3)">Probably</button>
+    <button onclick="answer(4)">Probably Not</button>
+  </div>
+  <pre id="output"></pre>
+
+  <script>
+    let session = null;
+    let signature = null;
+    let step = 0;
+
+    async function startGame() {
+      document.getElementById("output").textContent = "Starting new game...";
+      try {
+        const res = await fetch("/akinator?action=new_session&partner=1&player=website&region=en");
+        const data = await res.json();
+
+        session = data.parameters.identification.session;
+        signature = data.parameters.identification.signature;
+        step = 0;
+
+        const firstQ = data.parameters.step_information.question;
+        showQuestion(firstQ);
+      } catch (err) {
+        document.getElementById("output").textContent = "? " + err.message;
+      }
+    }
+
+    async function answer(choice) {
+      document.getElementById("output").textContent = "Loading next...";
+      try {
+        const res = await fetch(`/akinator?action=answer&session=${session}&signature=${signature}&step=${step}&answer=${choice}`);
+        const data = await res.json();
+        step++;
+
+        if (data.parameters.progression > 95) {
+          await getGuess();
+        } else {
+          const nextQ = data.parameters.question;
+          showQuestion(nextQ);
+        }
+      } catch (err) {
+        document.getElementById("output").textContent = "? " + err.message;
+      }
+    }
+
+    async function getGuess() {
+      try {
+        const res = await fetch(`/akinator?action=win&session=${session}&signature=${signature}&step=${step}`);
+        const data = await res.json();
+
+        const guess = data.parameters.elements[0].element;
+        document.getElementById("question").textContent = 
+          `?? I think your character is: ${guess.name} (${guess.description})`;
+        document.getElementById("answers").style.display = "none";
+
+        if (guess.absolute_picture_path) {
+          const img = document.createElement("img");
+          img.src = guess.absolute_picture_path;
+          img.width = 200;
+          document.getElementById("question").appendChild(img);
+        }
+      } catch (err) {
+        document.getElementById("output").textContent = "? " + err.message;
+      }
+    }
+
+    function showQuestion(q) {
+      document.getElementById("question").textContent = q;
+      document.getElementById("answers").style.display = "block";
+      document.getElementById("output").textContent = "";
+    }
+  </script>
+</body>
+</html>
