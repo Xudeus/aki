@@ -1,7 +1,9 @@
- [build]
-functions = "netlify/functions"
-publish = "."
-"[[redirects]]" = true
-from = "/akinator/*"
-to = "/.netlify/functions/akinator/:splat"
-status = "200"
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+[[redirects]]
+  from = "/akinator/*"
+  to = "/.netlify/functions/akinator/:splat"
+  status = 200
+
